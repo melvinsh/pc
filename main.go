@@ -12,6 +12,7 @@ import (
 
 func main() {
 	linesFlag := flag.Int("l", 3, "Number of lines to group")
+	timeoutFlag := flag.String("t", "", "Timeout value (optional)")
 	flag.Parse()
 
 	if len(flag.Args()) < 1 {
@@ -22,6 +23,11 @@ func main() {
 	cmdName := flag.Args()[0]
 	cmdArgs := flag.Args()[1:]
 
+	if *timeoutFlag != "" {
+		cmdName = "timeout"
+		cmdArgs = append([]string{*timeoutFlag, flag.Args()[0]}, cmdArgs...)
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
@@ -30,7 +36,6 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Error:", err)
 			os.Exit(1)
 		}
-
 		if len(group) == 0 {
 			break
 		}
@@ -57,11 +62,11 @@ func main() {
 
 		if err := cmd.Wait(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
-			os.Exit(1)
-		}
-
-		if err == io.EOF {
-			break
+			// Continue with the next group instead of exiting
+			if err == io.EOF {
+				break
+			}
+			continue
 		}
 	}
 }
